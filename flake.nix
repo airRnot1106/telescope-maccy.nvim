@@ -153,6 +153,12 @@
                   nvim-test
                   pkgs.sqlite
                 ];
+                # PlenaryBustedDirectory spawns a child Neovim per spec that
+                # does not inherit the wrapper's packpath, so hand the plugin
+                # paths to tests/minimal_init.lua through the environment
+                # (inherited by the child processes).
+                PLENARY_NVIM = pkgs.vimPlugins.plenary-nvim;
+                TELESCOPE_NVIM = pkgs.vimPlugins.telescope-nvim;
               }
               ''
                 cp -r ${self} source
