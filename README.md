@@ -1,21 +1,17 @@
+<div align="center">
+<samp>
+
 # telescope-maccy.nvim
 
-Browse [Maccy](https://maccy.app/) clipboard history from
-[Telescope](https://github.com/nvim-telescope/telescope.nvim).
+Integration for [Maccy](https://github.com/p0deje/Maccy) with [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)
 
-Maccy ships no CLI, IPC, or AppleScript API, so this extension reads Maccy's
-Core Data SQLite store directly — **read-only**, never writing to it. Fuzzy-find
-a past clipboard entry and load it back into your registers.
+</samp>
+</div>
 
-## Features
+> [!CAUTION]
+> Please note that this is currently at an experimental stage. Breaking changes may occur.
 
-- Fuzzy-search your Maccy clipboard history, newest first
-- Full-text preview of the unmodified entry
-- `<CR>` loads the raw value into the `+` and `"` registers — paste with
-  Neovim's own commands
-- Optional pinning of Maccy-pinned entries to the top
-- Skips loading very large entries to keep the picker snappy
-- `:checkhealth telescope-maccy`
+![telescope-maccy demo](vhs/demo.gif)
 
 ## Requirements
 
@@ -23,23 +19,6 @@ a past clipboard entry and load it back into your registers.
 - Neovim >= 0.10 (uses `vim.system()`)
 - [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)
 - `sqlite3` on your `PATH` (ships with macOS)
-
-## Installation
-
-With [lazy.nvim](https://github.com/folke/lazy.nvim):
-
-```lua
-{
-  "airRnot1106/telescope-maccy.nvim",
-  dependencies = {
-    "nvim-telescope/telescope.nvim",
-    "nvim-lua/plenary.nvim",
-  },
-  config = function()
-    require("telescope").load_extension("maccy")
-  end,
-}
-```
 
 ## Usage
 
@@ -84,22 +63,6 @@ require("telescope").load_extension("maccy")
 Options can also be passed per call: `:Telescope maccy limit=20 pin_to_top=true`.
 
 See `:help telescope-maccy` for the full documentation.
-
-## How it works
-
-The database is opened read-only via a `file:...?mode=ro` URI and never
-modified. Read-only (not `immutable=1`) is deliberate: Maccy keeps live history
-in the write-ahead log (`Storage.sqlite-wal`), which `immutable=1` would ignore
-— reading an empty or stale snapshot. A read-only connection honours the WAL and
-does not block Maccy. Only plain-text entries are listed; the list is re-queried
-fresh on every launch. Displayed text is folded to a single line, but the value
-loaded into your registers is always the original.
-
-## Limitations
-
-- macOS only.
-- Read-only: no delete or pin editing — manage history from Maccy itself.
-- Text only: image and file-URL entries are not supported.
 
 ## Development
 
