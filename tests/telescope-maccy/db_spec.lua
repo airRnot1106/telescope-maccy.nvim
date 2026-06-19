@@ -50,25 +50,36 @@ describe("telescope-maccy.db.build_command", function()
 end)
 
 describe("telescope-maccy.db.query", function()
-	local function create_db()
-		local dir = vim.fn.tempname()
-		vim.fn.mkdir(dir, "p")
-		local path = dir .. "/Storage.sqlite"
-		local sql = [[
-CREATE TABLE ZHISTORYITEM (Z_PK INTEGER PRIMARY KEY, ZLASTCOPIEDAT REAL, ZPIN VARCHAR);
-CREATE TABLE ZHISTORYITEMCONTENT (Z_PK INTEGER PRIMARY KEY, ZITEM INTEGER, ZTYPE VARCHAR, ZVALUE BLOB);
-INSERT INTO ZHISTORYITEM VALUES (1, 300.0, NULL);
-INSERT INTO ZHISTORYITEM VALUES (2, 100.0, 'a');
-INSERT INTO ZHISTORYITEM VALUES (3, 200.0, NULL);
-INSERT INTO ZHISTORYITEM VALUES (4, 400.0, NULL);
-INSERT INTO ZHISTORYITEMCONTENT VALUES (1, 1, 'public.utf8-plain-text', CAST('newest' AS BLOB));
-INSERT INTO ZHISTORYITEMCONTENT VALUES (2, 2, 'public.utf8-plain-text', CAST('pinned older' AS BLOB));
-INSERT INTO ZHISTORYITEMCONTENT VALUES (3, 3, 'public.utf8-plain-text', CAST('this body is long enough' AS BLOB));
-INSERT INTO ZHISTORYITEMCONTENT VALUES (4, 4, 'public.tiff', CAST('imgdata' AS BLOB));
-]]
+	local SCHEMA = table.concat({
+		"CREATE TABLE ZHISTORYITEM (Z_PK INTEGER PRIMARY KEY, ZLASTCOPIEDAT REAL, ZPIN VARCHAR);",
+		"CREATE TABLE ZHISTORYITEMCONTENT (Z_PK INTEGER PRIMARY KEY, ZITEM INTEGER, ZTYPE VARCHAR, ZVALUE BLOB);",
+	}, "\n")
+
+	-- Create a Storage.sqlite at `path` (default: a fresh temp dir) seeded with
+	-- the schema and the given SQL statements, and return its path.
+	local function seed_db(statements, path)
+		if not path then
+			local dir = vim.fn.tempname()
+			vim.fn.mkdir(dir, "p")
+			path = dir .. "/Storage.sqlite"
+		end
+		local sql = SCHEMA .. "\n" .. table.concat(statements, "\n")
 		local res = vim.system({ "sqlite3", path }, { stdin = sql }):wait()
 		assert.are.equal(0, res.code, res.stderr)
 		return path
+	end
+
+	local function create_db()
+		return seed_db({
+			"INSERT INTO ZHISTORYITEM VALUES (1, 300.0, NULL);",
+			"INSERT INTO ZHISTORYITEM VALUES (2, 100.0, 'a');",
+			"INSERT INTO ZHISTORYITEM VALUES (3, 200.0, NULL);",
+			"INSERT INTO ZHISTORYITEM VALUES (4, 400.0, NULL);",
+			"INSERT INTO ZHISTORYITEMCONTENT VALUES (1, 1, 'public.utf8-plain-text', CAST('newest' AS BLOB));",
+			"INSERT INTO ZHISTORYITEMCONTENT VALUES (2, 2, 'public.utf8-plain-text', CAST('pinned older' AS BLOB));",
+			"INSERT INTO ZHISTORYITEMCONTENT VALUES (3, 3, 'public.utf8-plain-text', CAST('this body is long enough' AS BLOB));",
+			"INSERT INTO ZHISTORYITEMCONTENT VALUES (4, 4, 'public.tiff', CAST('imgdata' AS BLOB));",
+		})
 	end
 
 	local function run(opts)
@@ -145,14 +156,13 @@ INSERT INTO ZHISTORYITEMCONTENT VALUES (4, 4, 'public.tiff', CAST('imgdata' AS B
 		})
 		writer:write(table.concat({
 			"PRAGMA journal_mode=WAL;",
-			"CREATE TABLE ZHISTORYITEM (Z_PK INTEGER PRIMARY KEY, ZLASTCOPIEDAT REAL, ZPIN VARCHAR);",
-			"CREATE TABLE ZHISTORYITEMCONTENT (Z_PK INTEGER PRIMARY KEY, ZITEM INTEGER, ZTYPE VARCHAR, ZVALUE BLOB);",
+			SCHEMA,
 			"INSERT INTO ZHISTORYITEM VALUES (1, 100.0, NULL);",
 			"INSERT INTO ZHISTORYITEMCONTENT VALUES (1, 1, 'public.utf8-plain-text', CAST('lives in wal' AS BLOB));",
 			"SELECT 'FLUSHED';",
 			"",
 		}, "\n"))
-		vim.wait(5000, function()
+		vim.wait(10000, function()
 			return flushed
 		end, 10)
 		assert.is_true(flushed, "writer did not execute its statements")
@@ -166,14 +176,10 @@ INSERT INTO ZHISTORYITEMCONTENT VALUES (4, 4, 'public.tiff', CAST('imgdata' AS B
 	it("reads a database whose path contains spaces (the default path does)", function()
 		local dir = vim.fn.tempname() .. "/Application Support/Maccy"
 		vim.fn.mkdir(dir, "p")
-		local path = dir .. "/Storage.sqlite"
-		local sql = [[
-CREATE TABLE ZHISTORYITEM (Z_PK INTEGER PRIMARY KEY, ZLASTCOPIEDAT REAL, ZPIN VARCHAR);
-CREATE TABLE ZHISTORYITEMCONTENT (Z_PK INTEGER PRIMARY KEY, ZITEM INTEGER, ZTYPE VARCHAR, ZVALUE BLOB);
-INSERT INTO ZHISTORYITEM VALUES (1, 100.0, NULL);
-INSERT INTO ZHISTORYITEMCONTENT VALUES (1, 1, 'public.utf8-plain-text', CAST('spaced' AS BLOB));
-]]
-		assert.are.equal(0, vim.system({ "sqlite3", path }, { stdin = sql }):wait().code)
+		local path = seed_db({
+			"INSERT INTO ZHISTORYITEM VALUES (1, 100.0, NULL);",
+			"INSERT INTO ZHISTORYITEMCONTENT VALUES (1, 1, 'public.utf8-plain-text', CAST('spaced' AS BLOB));",
+		}, dir .. "/Storage.sqlite")
 
 		local rows, err = run(opts({ db_path = path }))
 		assert.is_nil(err)

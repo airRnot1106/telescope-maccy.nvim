@@ -71,8 +71,10 @@ function M.query(opts, on_done)
 			return finish(nil, vim.trim(msg))
 		end
 
+		-- Zero rows: sqlite3 -json prints nothing. Check for any non-whitespace
+		-- without copying the (potentially large) output via vim.trim.
 		local out = res.stdout or ""
-		if vim.trim(out) == "" then
+		if not out:find("%S") then
 			return finish({}, nil)
 		end
 

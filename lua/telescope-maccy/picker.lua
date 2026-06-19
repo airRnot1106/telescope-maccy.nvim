@@ -82,9 +82,11 @@ function M.copy_entry(entry)
 	if not entry or entry.value == nil then
 		return false
 	end
-	-- `+` keeps the macOS pasteboard in sync; `"` makes plain `p` work.
-	pcall(vim.fn.setreg, "+", entry.value)
+	-- `"` makes plain `p` work and always succeeds; set it first. `+` syncs the
+	-- macOS pasteboard but may have no clipboard provider (e.g. headless/CI),
+	-- so it is best-effort.
 	vim.fn.setreg('"', entry.value)
+	pcall(vim.fn.setreg, "+", entry.value)
 	return true
 end
 

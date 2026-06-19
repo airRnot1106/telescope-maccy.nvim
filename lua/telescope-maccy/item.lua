@@ -50,8 +50,19 @@ end
 ---@param now number current Unix time
 ---@return table
 function M.make_entry(row, now)
-	local is_large = row.value == nil
-	local body = is_large and M.large_text_label(row.byte_len) or M.fold(row.value)
+	-- value is NULL only for entries over the large-text threshold, in which
+	-- case byte_len is the real length. A NULL ZVALUE yields value == nil AND
+	-- byte_len == nil (LENGTH(NULL) is NULL); treat that as an empty entry
+	-- rather than crashing large_text_label on a nil length.
+	local is_large = row.value == nil and row.byte_len ~= nil
+	local body
+	if row.value ~= nil then
+		body = M.fold(row.value)
+	elseif is_large then
+		body = M.large_text_label(row.byte_len)
+	else
+		body = ""
+	end
 	-- Maccy stores ZPIN as the pin shortcut string (or NULL when unpinned).
 	return {
 		value = row.value,

@@ -75,6 +75,13 @@ describe("telescope-maccy.item.make_entry", function()
 		assert.is_false(entry.pinned)
 	end)
 
+	it("does not crash on a NULL ZVALUE (value and byte_len both nil)", function()
+		local entry = item.make_entry({ last_copied_at = 0, pin = nil, byte_len = nil, value = nil }, now)
+		assert.is_nil(entry.value)
+		assert.is_false(entry.is_large)
+		assert.are.equal("", entry.body)
+	end)
+
 	it("represents large entries with a label and no value", function()
 		local entry = item.make_entry({
 			last_copied_at = 0,
