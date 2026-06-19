@@ -1,0 +1,10 @@
+.claude/skills
+
+.direnv
+.pre-commit-config.yaml
+result
+result-*
+
+*.log
+
+.env
