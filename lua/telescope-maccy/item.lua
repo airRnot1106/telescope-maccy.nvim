@@ -53,9 +53,10 @@ end
 function M.make_entry(row, now)
 	local is_large = row.value == nil
 	local body = is_large and M.large_text_label(row.byte_len) or M.fold(row.value)
+	-- Maccy stores ZPIN as the pin shortcut string (or NULL when unpinned).
 	return {
 		value = row.value,
-		pinned = row.pin == 1,
+		pinned = row.pin ~= nil and row.pin ~= "",
 		is_large = is_large,
 		time = M.relative_time(row.last_copied_at + M.CORE_DATA_EPOCH, now),
 		body = body,

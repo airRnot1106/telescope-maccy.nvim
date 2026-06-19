@@ -52,7 +52,7 @@ describe("telescope-maccy.item.make_entry", function()
 	it("builds a text entry with raw value preserved and folded body", function()
 		local entry = item.make_entry({
 			last_copied_at = 0,
-			pin = 0,
+			pin = nil,
 			byte_len = 5,
 			value = "hello\nworld",
 		}, now)
@@ -65,15 +65,20 @@ describe("telescope-maccy.item.make_entry", function()
 		assert.is_false(entry.is_large)
 	end)
 
-	it("marks pinned rows", function()
-		local entry = item.make_entry({ last_copied_at = 0, pin = 1, byte_len = 1, value = "x" }, now)
+	it("treats a non-empty ZPIN (the pin shortcut) as pinned", function()
+		local entry = item.make_entry({ last_copied_at = 0, pin = "a", byte_len = 1, value = "x" }, now)
 		assert.is_true(entry.pinned)
+	end)
+
+	it("treats an empty ZPIN as not pinned", function()
+		local entry = item.make_entry({ last_copied_at = 0, pin = "", byte_len = 1, value = "x" }, now)
+		assert.is_false(entry.pinned)
 	end)
 
 	it("represents large entries with a label and no value", function()
 		local entry = item.make_entry({
 			last_copied_at = 0,
-			pin = 0,
+			pin = nil,
 			byte_len = 204800,
 			value = nil,
 		}, now)
