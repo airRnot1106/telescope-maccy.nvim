@@ -1,0 +1,165 @@
+*telescope-maccy.txt*        Browse Maccy clipboard history from Telescope
+
+Author:  airRnot1106
+License: MIT
+
+==============================================================================
+CONTENTS                                                  *telescope-maccy*
+
+    1. Introduction ................... |telescope-maccy-introduction|
+    2. Requirements .................. |telescope-maccy-requirements|
+    3. Setup ......................... |telescope-maccy-setup|
+    4. Configuration ................. |telescope-maccy-configuration|
+    5. Usage ......................... |telescope-maccy-usage|
+    6. Mappings ...................... |telescope-maccy-mappings|
+    7. How it works .................. |telescope-maccy-internals|
+    8. Health ........................ |telescope-maccy-health|
+    9. Limitations ................... |telescope-maccy-limitations|
+
+==============================================================================
+1. INTRODUCTION                              *telescope-maccy-introduction*
+
+telescope-maccy.nvim is a |telescope.nvim| extension that lets you fuzzy-find
+the clipboard history of Maccy (https://maccy.app/) and load an entry back
+into your registers.
+
+Maccy ships no CLI, IPC or AppleScript interface, so this extension reads
+Maccy's Core Data SQLite store directly, in read-only mode. It never writes to
+the database: copying an entry only sets Neovim registers, and pasting is left
+to Neovim's own commands.
+
+==============================================================================
+2. REQUIREMENTS                              *telescope-maccy-requirements*
+
+- macOS, with Maccy installed and its history database present.
+- Neovim >= 0.10 (uses |vim.system()|).
+- |telescope.nvim|.
+- The `sqlite3` executable on your `PATH` (ships with macOS).
+
+No other runtime dependencies are required; the extension shells out to
+`sqlite3` rather than linking a SQLite library.
+
+==============================================================================
+3. SETUP                                            *telescope-maccy-setup*
+
+Register the extension through Telescope after calling its `setup()`: >lua
+
+    require("telescope").setup({
+      extensions = {
+        maccy = {
+          -- options, see |telescope-maccy-configuration|
+        },
+      },
+    })
+    require("telescope").load_extension("maccy")
+<
+There is no separate `setup()` function; all configuration goes through the
+Telescope extensions table.
+
+==============================================================================
+4. CONFIGURATION                            *telescope-maccy-configuration*
+
+The defaults are: >lua
+
+    {
+      db_path = "~/Library/Containers/org.p0deje.Maccy/Data/Library/"
+        .. "Application Support/Maccy/Storage.sqlite",
+      limit = 500,
+      pin_to_top = false,
+      large_text = {
+        enabled = true,
+        threshold = 102400, -- 100 KiB
+      },
+    }
+<
+                                                  *telescope-maccy-db_path*
+db_path ~
+    Path to Maccy's `Storage.sqlite`. A leading `~` is expanded. Override this
+    if you use the App Store build or a non-standard container.
+
+                                                    *telescope-maccy-limit*
+limit ~
+    Maximum number of history entries fetched per picker launch, newest first.
+
+                                               *telescope-maccy-pin_to_top*
+pin_to_top ~
+    When `true`, entries pinned in Maccy are floated to the top of the list
+    and prefixed with a 📌 marker. When `false`, everything is ordered by
+    recency only.
+
+                                               *telescope-maccy-large_text*
+large_text ~
+    `{ enabled = boolean, threshold = number }`. When `enabled`, entries whose
+    raw byte length exceeds `threshold` are listed without loading their body
+    (shown as `(large text, N KB)`) and cannot be copied. Set `enabled = false`
+    to always load every body in full.
+
+Per-call options ~
+    Options may also be passed for a single invocation, overriding the
+    configured ones: >vim
+
+    :Telescope maccy limit=20 pin_to_top=true
+<
+==============================================================================
+5. USAGE                                            *telescope-maccy-usage*
+
+                                                          *:Telescope-maccy*
+Open the picker with: >vim
+
+    :Telescope maccy
+<
+Or from Lua: >lua
+
+    require("telescope").extensions.maccy.maccy()
+<
+Each line shows a relative timestamp and a one-line preview of the entry. The
+preview window shows the full, unmodified text. Type to fuzzy-filter; the
+search runs against the entry body only.
+
+==============================================================================
+6. MAPPINGS                                      *telescope-maccy-mappings*
+
+Inside the picker, in addition to Telescope's own mappings:
+
+    <CR>    Load the selected entry's raw text into the `+` (system clipboard)
+            and `"` (unnamed) registers, then close the picker. Large entries
+            (see |telescope-maccy-large_text|) cannot be copied and produce a
+            warning.
+
+There is no dedicated paste action. Once an entry is in your registers, paste
+with Neovim's normal commands, e.g. `p`, `"+p`, or `<C-r>"` in insert mode.
+
+==============================================================================
+7. HOW IT WORKS                                 *telescope-maccy-internals*
+
+- The database is opened through a `file:...?mode=ro&immutable=1` URI, so the
+  extension never takes a lock and reads a consistent snapshot even while
+  Maccy is writing. The store is never modified.
+- Only plain-text entries (`public.utf8-plain-text`) are listed; image- or
+  file-only items are excluded.
+- The list is refreshed by a fresh query on every launch; nothing is cached
+  and no file is watched.
+- Displayed text has newlines folded to `↵` and is trimmed, but the value
+  loaded into your registers is always the original, unmodified text.
+- Maccy stores timestamps in the Core Data epoch (2001-01-01 UTC); they are
+  converted to Unix time for the relative-time column.
+
+==============================================================================
+8. HEALTH                                          *telescope-maccy-health*
+
+Run a diagnostic with: >vim
+
+    :checkhealth telescope-maccy
+<
+It reports the Neovim version, whether `sqlite3` is on the `PATH`, and whether
+the configured database exists and is readable.
+
+==============================================================================
+9. LIMITATIONS                                *telescope-maccy-limitations*
+
+- macOS only; the database lives in Maccy's local container.
+- Read-only: there are no delete or pin-editing actions. Manage history from
+  Maccy itself.
+- Text only: image and file-URL entries are not supported.
+
+vim:tw=78:ts=8:ft=help:norl:
