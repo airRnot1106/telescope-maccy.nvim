@@ -12,9 +12,8 @@ CONTENTS                                                  *telescope-maccy*
     4. Configuration ................. |telescope-maccy-configuration|
     5. Usage ......................... |telescope-maccy-usage|
     6. Mappings ...................... |telescope-maccy-mappings|
-    7. How it works .................. |telescope-maccy-internals|
-    8. Health ........................ |telescope-maccy-health|
-    9. Limitations ................... |telescope-maccy-limitations|
+    7. Health ........................ |telescope-maccy-health|
+    8. Limitations ................... |telescope-maccy-limitations|
 
 ==============================================================================
 1. INTRODUCTION                              *telescope-maccy-introduction*
@@ -23,10 +22,8 @@ telescope-maccy.nvim is a |telescope.nvim| extension that lets you fuzzy-find
 the clipboard history of Maccy (https://maccy.app/) and load an entry back
 into your registers.
 
-Maccy ships no CLI, IPC or AppleScript interface, so this extension reads
-Maccy's Core Data SQLite store directly, in read-only mode. It never writes to
-the database: copying an entry only sets Neovim registers, and pasting is left
-to Neovim's own commands.
+The extension is read-only and never modifies Maccy's history: copying an
+entry only sets Neovim registers, and pasting is left to Neovim's own commands.
 
 ==============================================================================
 2. REQUIREMENTS                              *telescope-maccy-requirements*
@@ -36,8 +33,7 @@ to Neovim's own commands.
 - |telescope.nvim|.
 - The `sqlite3` executable on your `PATH` (ships with macOS).
 
-No other runtime dependencies are required; the extension shells out to
-`sqlite3` rather than linking a SQLite library.
+No other runtime dependencies are required.
 
 ==============================================================================
 3. SETUP                                            *telescope-maccy-setup*
@@ -113,8 +109,10 @@ Or from Lua: >lua
     require("telescope").extensions.maccy.maccy()
 <
 Each line shows a relative timestamp and a one-line preview of the entry. The
-preview window shows the full, unmodified text. Type to fuzzy-filter; the
-search runs against the entry body only.
+preview window shows the full, unmodified text, except for large entries whose
+body is not loaded (see |telescope-maccy-large_text|), which preview their
+`(large text, N KB)` label instead. Type to fuzzy-filter; the search runs
+against the entry body only.
 
 ==============================================================================
 6. MAPPINGS                                      *telescope-maccy-mappings*
@@ -130,24 +128,7 @@ There is no dedicated paste action. Once an entry is in your registers, paste
 with Neovim's normal commands, e.g. `p`, `"+p`, or `<C-r>"` in insert mode.
 
 ==============================================================================
-7. HOW IT WORKS                                 *telescope-maccy-internals*
-
-- The database is opened read-only through a `file:...?mode=ro` URI and never
-  modified. Read-only is used rather than `immutable=1` on purpose: Maccy keeps
-  live history in the write-ahead log (`Storage.sqlite-wal`), which
-  `immutable=1` would ignore — reading an empty or stale snapshot. A read-only
-  connection honours the WAL and, in WAL journal mode, does not block Maccy.
-- Only plain-text entries (`public.utf8-plain-text`) are listed; image- or
-  file-only items are excluded.
-- The list is refreshed by a fresh query on every launch; nothing is cached
-  and no file is watched.
-- Displayed text has newlines folded to `↵` and is trimmed, but the value
-  loaded into your registers is always the original, unmodified text.
-- Maccy stores timestamps in the Core Data epoch (2001-01-01 UTC); they are
-  converted to Unix time for the relative-time column.
-
-==============================================================================
-8. HEALTH                                          *telescope-maccy-health*
+7. HEALTH                                          *telescope-maccy-health*
 
 Run a diagnostic with: >vim
 
@@ -157,7 +138,7 @@ It reports the Neovim version, whether `sqlite3` is on the `PATH`, and whether
 the configured database exists and is readable.
 
 ==============================================================================
-9. LIMITATIONS                                *telescope-maccy-limitations*
+8. LIMITATIONS                                *telescope-maccy-limitations*
 
 - macOS only; the database lives in Maccy's local container.
 - Read-only: there are no delete or pin-editing actions. Manage history from
