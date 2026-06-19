@@ -33,7 +33,7 @@ describe("telescope-maccy.db.build_sql", function()
 end)
 
 describe("telescope-maccy.db.build_command", function()
-	it("opens the db read-only and immutable, expanding ~", function()
+	it("opens the db read-only (not immutable, so the WAL is honoured), expanding ~", function()
 		local cmd = db.build_command({
 			db_path = "~/x.sqlite",
 			limit = 1,
@@ -42,8 +42,9 @@ describe("telescope-maccy.db.build_command", function()
 		})
 		assert.are.equal("sqlite3", cmd[1])
 		assert.are.equal("-json", cmd[2])
-		local expected = "file:" .. vim.fn.expand("~") .. "/x.sqlite?mode=ro&immutable=1"
+		local expected = "file:" .. vim.fn.expand("~") .. "/x.sqlite?mode=ro"
 		assert.are.equal(expected, cmd[3])
+		assert.is_nil(cmd[3]:find("immutable"))
 		assert.is_truthy(cmd[4]:find("SELECT"))
 	end)
 end)
@@ -123,6 +124,43 @@ INSERT INTO ZHISTORYITEMCONTENT VALUES (4, 4, 'public.tiff', CAST('imgdata' AS B
 		local rows, err = run(opts({ limit = 0 }))
 		assert.is_nil(err)
 		assert.are.same({}, rows)
+	end)
+
+	it("reads rows that live in an uncheckpointed WAL (Maccy keeps the db open)", function()
+		local dir = vim.fn.tempname()
+		vim.fn.mkdir(dir, "p")
+		local path = dir .. "/Storage.sqlite"
+
+		-- Write into a WAL-mode db and keep the connection open, then SIGKILL it
+		-- so the WAL is never checkpointed into the main file — exactly how Maccy
+		-- leaves its store while running.
+		local flushed = false
+		local writer = vim.system({ "sqlite3", path }, {
+			stdin = true,
+			stdout = function(_, data)
+				if data and data:find("FLUSHED") then
+					flushed = true
+				end
+			end,
+		})
+		writer:write(table.concat({
+			"PRAGMA journal_mode=WAL;",
+			"CREATE TABLE ZHISTORYITEM (Z_PK INTEGER PRIMARY KEY, ZLASTCOPIEDAT REAL, ZPIN VARCHAR);",
+			"CREATE TABLE ZHISTORYITEMCONTENT (Z_PK INTEGER PRIMARY KEY, ZITEM INTEGER, ZTYPE VARCHAR, ZVALUE BLOB);",
+			"INSERT INTO ZHISTORYITEM VALUES (1, 100.0, NULL);",
+			"INSERT INTO ZHISTORYITEMCONTENT VALUES (1, 1, 'public.utf8-plain-text', CAST('lives in wal' AS BLOB));",
+			"SELECT 'FLUSHED';",
+			"",
+		}, "\n"))
+		vim.wait(5000, function()
+			return flushed
+		end, 10)
+		assert.is_true(flushed, "writer did not execute its statements")
+		writer:kill(9)
+
+		local rows, err = run(opts({ db_path = path }))
+		assert.is_nil(err)
+		assert.are.equal("lives in wal", rows[1].value)
 	end)
 
 	it("reads a database whose path contains spaces (the default path does)", function()

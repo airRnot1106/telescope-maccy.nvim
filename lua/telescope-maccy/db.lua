@@ -42,10 +42,15 @@ end
 
 --- Build the argv for the sqlite3 invocation. No shell is involved, so the
 --- file URI and SQL are passed verbatim.
+---
+--- Opened read-only (`mode=ro`) rather than `immutable=1`: Maccy keeps live
+--- history in the WAL (`Storage.sqlite-wal`), and `immutable=1` ignores the
+--- WAL, so it would read an empty/stale snapshot. A read-only connection
+--- respects the WAL and, in WAL journal mode, never blocks Maccy's writes.
 ---@param opts table resolved config (must include db_path)
 ---@return string[]
 function M.build_command(opts)
-	local uri = string.format("file:%s?mode=ro&immutable=1", M.expand_path(opts.db_path))
+	local uri = string.format("file:%s?mode=ro", M.expand_path(opts.db_path))
 	return { "sqlite3", "-json", uri, M.build_sql(opts) }
 end
 

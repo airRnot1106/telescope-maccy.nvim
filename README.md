@@ -87,11 +87,13 @@ See `:help telescope-maccy` for the full documentation.
 
 ## How it works
 
-The database is opened via a `file:...?mode=ro&immutable=1` URI, so the
-extension never takes a lock and reads a consistent snapshot even while Maccy is
-writing. Only plain-text entries are listed; the list is re-queried fresh on
-every launch. Displayed text is folded to a single line, but the value loaded
-into your registers is always the original.
+The database is opened read-only via a `file:...?mode=ro` URI and never
+modified. Read-only (not `immutable=1`) is deliberate: Maccy keeps live history
+in the write-ahead log (`Storage.sqlite-wal`), which `immutable=1` would ignore
+— reading an empty or stale snapshot. A read-only connection honours the WAL and
+does not block Maccy. Only plain-text entries are listed; the list is re-queried
+fresh on every launch. Displayed text is folded to a single line, but the value
+loaded into your registers is always the original.
 
 ## Limitations
 

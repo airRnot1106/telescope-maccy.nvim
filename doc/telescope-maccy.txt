@@ -132,9 +132,11 @@ with Neovim's normal commands, e.g. `p`, `"+p`, or `<C-r>"` in insert mode.
 ==============================================================================
 7. HOW IT WORKS                                 *telescope-maccy-internals*
 
-- The database is opened through a `file:...?mode=ro&immutable=1` URI, so the
-  extension never takes a lock and reads a consistent snapshot even while
-  Maccy is writing. The store is never modified.
+- The database is opened read-only through a `file:...?mode=ro` URI and never
+  modified. Read-only is used rather than `immutable=1` on purpose: Maccy keeps
+  live history in the write-ahead log (`Storage.sqlite-wal`), which
+  `immutable=1` would ignore — reading an empty or stale snapshot. A read-only
+  connection honours the WAL and, in WAL journal mode, does not block Maccy.
 - Only plain-text entries (`public.utf8-plain-text`) are listed; image- or
   file-only items are excluded.
 - The list is refreshed by a fresh query on every launch; nothing is cached
