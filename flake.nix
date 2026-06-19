@@ -32,15 +32,16 @@
         pkgs = nixpkgs.legacyPackages.${system};
 
         plugin = pkgs.vimUtils.buildVimPlugin {
-          pname = "sample";
+          pname = "telescope-maccy";
           version = "dev";
           src = ./.;
+          dependencies = [ pkgs.vimPlugins.telescope-nvim ];
           nvimSkipModules = [ "init" ];
           meta = {
-            description = "";
-            homepage = "";
+            description = "Browse Maccy clipboard history from Telescope";
+            homepage = "https://github.com/airRnot1106/telescope-maccy.nvim";
             license = pkgs.lib.licenses.mit;
-            platforms = pkgs.lib.platforms.all;
+            platforms = pkgs.lib.platforms.darwin;
           };
         };
 
@@ -51,7 +52,11 @@
               optional = false;
             }
             {
-              plugin = pkgs.vimPlugins.lualine-nvim;
+              plugin = pkgs.vimPlugins.telescope-nvim;
+              optional = false;
+            }
+            {
+              plugin = pkgs.vimPlugins.plenary-nvim;
               optional = false;
             }
           ];
@@ -65,12 +70,13 @@
         };
 
         vhs-script = pkgs.writeShellApplication {
-          name = "sample";
+          name = "telescope-maccy";
           runtimeInputs = with pkgs; [
             bashInteractive
             ffmpeg
             git
             nvim
+            sqlite
             ttyd
             vhs
           ];
@@ -128,19 +134,30 @@
                     plugin = pkgs.vimPlugins.plenary-nvim;
                     optional = false;
                   }
+                  {
+                    plugin = pkgs.vimPlugins.telescope-nvim;
+                    optional = false;
+                  }
                 ];
                 wrapRc = false;
               };
             in
-            pkgs.runCommand "test" { nativeBuildInputs = [ nvim-test ]; } ''
-              cp -r ${self} source
-              chmod -R u+w source
-              cd source
-              export HOME="$TMPDIR"
-              nvim --headless --noplugin -u tests/minimal_init.lua \
-                -c "PlenaryBustedDirectory tests/ {minimal_init = 'tests/minimal_init.lua', sequential = true}"
-              touch "$out"
-            '';
+            pkgs.runCommand "test"
+              {
+                nativeBuildInputs = [
+                  nvim-test
+                  pkgs.sqlite
+                ];
+              }
+              ''
+                cp -r ${self} source
+                chmod -R u+w source
+                cd source
+                export HOME="$TMPDIR"
+                nvim --headless --noplugin -u tests/minimal_init.lua \
+                  -c "PlenaryBustedDirectory tests/ {minimal_init = 'tests/minimal_init.lua', sequential = true}"
+                touch "$out"
+              '';
         };
       }
     );
