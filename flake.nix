@@ -87,6 +87,16 @@
           ];
           text = ''
             cd "$(git rev-parse --show-toplevel)"
+
+            # Record against a seeded sample store instead of the user's real
+            # Maccy clipboard history (privacy + reproducibility). init.lua
+            # picks this up via $TELESCOPE_MACCY_DB.
+            db_dir="$(mktemp -d)"
+            trap 'rm -rf "$db_dir"' EXIT
+            TELESCOPE_MACCY_DB="$db_dir/Storage.sqlite"
+            export TELESCOPE_MACCY_DB
+            bash vhs/seed.sh "$TELESCOPE_MACCY_DB"
+
             exec vhs vhs/demo.tape
           '';
         };
