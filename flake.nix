@@ -35,7 +35,12 @@
           pname = "telescope-maccy";
           version = "dev";
           src = ./.;
-          dependencies = [ pkgs.vimPlugins.telescope-nvim ];
+          dependencies = [
+            pkgs.vimPlugins.telescope-nvim
+            # telescope require()s plenary at load time, so the module check
+            # needs it on the runtimepath too.
+            pkgs.vimPlugins.plenary-nvim
+          ];
           nvimSkipModules = [ "init" ];
           meta = {
             description = "Browse Maccy clipboard history from Telescope";

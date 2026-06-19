@@ -9,8 +9,7 @@ M.CORE_DATA_EPOCH = 978307200
 ---@param text string
 ---@return string
 function M.fold(text)
-	local trimmed = text:gsub("^%s+", ""):gsub("%s+$", "")
-	return (trimmed:gsub("\r\n", "↵"):gsub("[\r\n]", "↵"))
+	return (vim.trim(text):gsub("\r\n", "↵"):gsub("[\r\n]", "↵"))
 end
 
 local UNITS = {

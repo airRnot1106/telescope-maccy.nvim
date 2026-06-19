@@ -124,4 +124,21 @@ INSERT INTO ZHISTORYITEMCONTENT VALUES (4, 4, 'public.tiff', CAST('imgdata' AS B
 		assert.is_nil(err)
 		assert.are.same({}, rows)
 	end)
+
+	it("reads a database whose path contains spaces (the default path does)", function()
+		local dir = vim.fn.tempname() .. "/Application Support/Maccy"
+		vim.fn.mkdir(dir, "p")
+		local path = dir .. "/Storage.sqlite"
+		local sql = [[
+CREATE TABLE ZHISTORYITEM (Z_PK INTEGER PRIMARY KEY, ZLASTCOPIEDAT REAL, ZPIN VARCHAR);
+CREATE TABLE ZHISTORYITEMCONTENT (Z_PK INTEGER PRIMARY KEY, ZITEM INTEGER, ZTYPE VARCHAR, ZVALUE BLOB);
+INSERT INTO ZHISTORYITEM VALUES (1, 100.0, NULL);
+INSERT INTO ZHISTORYITEMCONTENT VALUES (1, 1, 'public.utf8-plain-text', CAST('spaced' AS BLOB));
+]]
+		assert.are.equal(0, vim.system({ "sqlite3", path }, { stdin = sql }):wait().code)
+
+		local rows, err = run(opts({ db_path = path }))
+		assert.is_nil(err)
+		assert.are.equal("spaced", rows[1].value)
+	end)
 end)
