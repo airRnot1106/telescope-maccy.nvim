@@ -1,8 +1,10 @@
--- Telescope extension entry point. Fleshed out once the picker lands.
+local maccy = require("telescope-maccy")
+
 return require("telescope").register_extension({
+	setup = function(ext_config)
+		maccy.setup(ext_config)
+	end,
 	exports = {
-		maccy = function()
-			vim.notify("telescope-maccy: not implemented yet", vim.log.levels.WARN)
-		end,
+		maccy = maccy.maccy,
 	},
 })
