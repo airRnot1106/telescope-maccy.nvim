@@ -78,6 +78,22 @@ describe("telescope-maccy.picker.default_on_select", function()
 		picker.default_on_select({ value = nil })
 		assert.are.equal("previous", vim.fn.getreg('"'))
 	end)
+
+	it("warns differently for large versus empty entries", function()
+		local msgs = {}
+		local orig = vim.notify
+		vim.notify = function(msg)
+			table.insert(msgs, msg)
+		end
+		local ok, err = pcall(function()
+			picker.default_on_select({ value = nil, is_large = true })
+			picker.default_on_select({ value = nil, is_large = false })
+		end)
+		vim.notify = orig
+		assert.is_true(ok, err)
+		assert.is_truthy(msgs[1]:find("too large", 1, true))
+		assert.is_truthy(msgs[2]:find("no text", 1, true))
+	end)
 end)
 
 describe("telescope-maccy.picker.resolve_on_select", function()

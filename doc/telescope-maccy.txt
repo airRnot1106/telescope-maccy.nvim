@@ -94,13 +94,13 @@ large_text ~
 on_select ~
     Function called with the selected entry when you press `<CR>`. The default
     copies the entry into the registers (see |telescope-maccy-mappings|).
-    The entry has these fields: >lua
+    The entry includes these fields (alongside Telescope's own): >lua
 
         {
-          value = string,    -- raw text; nil for large entries
+          value    = string,  -- raw text; nil for large entries
           is_large = boolean, -- true when the body was not loaded
-          pinned = boolean,  -- pinned in Maccy
-          body = string,     -- single-line display text
+          pinned   = boolean, -- pinned in Maccy
+          body     = string,  -- single-line display text
         }
 <
     The picker is closed before `on_select` runs. For example, to paste the

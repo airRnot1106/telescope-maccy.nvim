@@ -92,11 +92,12 @@ function M.copy_entry(entry)
 end
 
 --- Default `<CR>` action: copy the entry into the registers, warning when the
---- entry has no value (too large to load).
+--- entry has no copyable value (too large to load, or empty).
 ---@param entry table
 function M.default_on_select(entry)
 	if not M.copy_entry(entry) then
-		vim.notify("telescope-maccy: entry is too large to copy", vim.log.levels.WARN)
+		local reason = entry.is_large and "is too large to copy" or "has no text to copy"
+		vim.notify("telescope-maccy: entry " .. reason, vim.log.levels.WARN)
 	end
 end
 
