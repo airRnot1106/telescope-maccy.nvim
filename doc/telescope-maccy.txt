@@ -90,6 +90,31 @@ large_text ~
     (shown as `(large text, N KB)`) and cannot be copied. Set `enabled = false`
     to always load every body in full.
 
+                                               *telescope-maccy-on_select*
+on_select ~
+    Function called with the selected entry when you press `<CR>`. The default
+    copies the entry into the registers (see |telescope-maccy-mappings|).
+    The entry has these fields: >lua
+
+        {
+          value = string,    -- raw text; nil for large entries
+          is_large = boolean, -- true when the body was not loaded
+          pinned = boolean,  -- pinned in Maccy
+          body = string,     -- single-line display text
+        }
+<
+    The picker is closed before `on_select` runs. For example, to paste the
+    entry at the cursor instead of copying it: >lua
+
+        on_select = function(entry)
+          if entry.value then
+            vim.api.nvim_paste(entry.value, true, -1)
+          end
+        end
+<
+    For full control over the picker (extra keymaps, keeping it open), use
+    `attach_mappings` instead (see |telescope-maccy-mappings|).
+
 Per-call options ~
     Options may also be passed for a single invocation, overriding the
     configured ones: >vim

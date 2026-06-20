@@ -59,8 +59,26 @@ require("telescope").load_extension("maccy")
 | `limit`      | `500`       | Max entries fetched per launch, newest first.                     |
 | `pin_to_top` | `false`     | Float Maccy-pinned entries to the top, prefixed with 📌.          |
 | `large_text` | _see above_ | Skip loading bodies larger than `threshold` bytes when `enabled`. |
+| `on_select`  | copy        | Function run with the selected entry on `<CR>` (see below).       |
 
 Options can also be passed per call: `:Telescope maccy limit=20 pin_to_top=true`.
+
+### Customizing the select action
+
+By default `<CR>` copies the entry into the registers. Pass `on_select` to run
+your own action instead — it receives the entry (`value` is the raw text, `nil`
+for large entries; also `is_large`, `pinned`, `body`). The picker is closed
+before it runs:
+
+```lua
+maccy = {
+  on_select = function(entry)
+    if entry.value then
+      vim.api.nvim_paste(entry.value, true, -1) -- paste at the cursor
+    end
+  end,
+}
+```
 
 See `:help telescope-maccy` for the full documentation.
 

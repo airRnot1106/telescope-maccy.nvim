@@ -58,6 +58,7 @@ function M.make_entry_maker(opts, now)
 			ordinal = entry.ordinal,
 			body = entry.body,
 			is_large = entry.is_large,
+			pinned = entry.pinned,
 			display = function()
 				return displayer(M.display_columns(entry, opts))
 			end,
@@ -90,6 +91,22 @@ function M.copy_entry(entry)
 	return true
 end
 
+--- Default `<CR>` action: copy the entry into the registers, warning when the
+--- entry has no value (too large to load).
+---@param entry table
+function M.default_on_select(entry)
+	if not M.copy_entry(entry) then
+		vim.notify("telescope-maccy: entry is too large to copy", vim.log.levels.WARN)
+	end
+end
+
+--- Pick the select action: a user-provided `on_select` if set, else the default.
+---@param opts table resolved config
+---@return fun(entry: table)
+function M.resolve_on_select(opts)
+	return opts.on_select or M.default_on_select
+end
+
 local function build_previewer()
 	return previewers.new_buffer_previewer({
 		title = "Maccy Entry",
@@ -115,6 +132,7 @@ function M.show(opts)
 		end
 
 		local now = os.time()
+		local on_select = M.resolve_on_select(opts)
 		pickers
 			.new(opts, {
 				prompt_title = "Maccy",
@@ -128,8 +146,8 @@ function M.show(opts)
 					actions.select_default:replace(function()
 						local entry = action_state.get_selected_entry()
 						actions.close(prompt_bufnr)
-						if entry and not M.copy_entry(entry) then
-							vim.notify("telescope-maccy: entry is too large to copy", vim.log.levels.WARN)
+						if entry then
+							on_select(entry)
 						end
 					end)
 					return true
