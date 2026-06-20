@@ -53,13 +53,14 @@ require("telescope").setup({
 require("telescope").load_extension("maccy")
 ```
 
-| Option       | Default     | Description                                                       |
-| ------------ | ----------- | ----------------------------------------------------------------- |
-| `db_path`    | _see above_ | Path to Maccy's `Storage.sqlite` (`~` is expanded).               |
-| `limit`      | `500`       | Max entries fetched per launch, newest first.                     |
-| `pin_to_top` | `false`     | Float Maccy-pinned entries to the top, prefixed with 📌.          |
-| `large_text` | _see above_ | Skip loading bodies larger than `threshold` bytes when `enabled`. |
-| `on_select`  | copy        | Function run with the selected entry on `<CR>` (see below).       |
+| Option            | Default     | Description                                                       |
+| ----------------- | ----------- | ----------------------------------------------------------------- |
+| `db_path`         | _see above_ | Path to Maccy's `Storage.sqlite` (`~` is expanded).               |
+| `limit`           | `500`       | Max entries fetched per launch, newest first.                     |
+| `pin_to_top`      | `false`     | Float Maccy-pinned entries to the top, prefixed with 📌.          |
+| `large_text`      | _see above_ | Skip loading bodies larger than `threshold` bytes when `enabled`. |
+| `on_select`       | copy        | Function run with the selected entry on `<CR>` (see below).       |
+| `attach_mappings` | _nil_       | Telescope `attach_mappings`, run after the defaults (see below).  |
 
 Options can also be passed per call: `:Telescope maccy limit=20 pin_to_top=true`.
 
@@ -76,6 +77,26 @@ maccy = {
     if entry.value then
       vim.api.nvim_paste(entry.value, true, -1) -- paste at the cursor
     end
+  end,
+}
+```
+
+For full control over the picker (extra keymaps, keeping it open, replacing
+actions), pass an `attach_mappings` function. It runs after the default
+mappings, so you can add keys or replace `<CR>` with
+`actions.select_default:replace` (which then takes precedence over `on_select`):
+
+```lua
+maccy = {
+  attach_mappings = function(_, map)
+    map({ "i", "n" }, "<C-y>", function(prompt_bufnr)
+      local entry = require("telescope.actions.state").get_selected_entry()
+      require("telescope.actions").close(prompt_bufnr)
+      if entry and entry.value then
+        vim.fn.setreg("+", entry.value)
+      end
+    end)
+    return true
   end,
 }
 ```

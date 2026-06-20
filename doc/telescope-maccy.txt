@@ -152,6 +152,28 @@ Inside the picker, in addition to Telescope's own mappings:
 There is no dedicated paste action. Once an entry is in your registers, paste
 with Neovim's normal commands, e.g. `p`, `"+p`, or `<C-r>"` in insert mode.
 
+                                          *telescope-maccy-attach_mappings*
+To change only what `<CR>` does, set |telescope-maccy-on_select|. For full
+control over the picker — adding keymaps or replacing actions — pass an
+`attach_mappings` function in the |telescope-maccy-configuration| table. It
+receives `(prompt_bufnr, map)` and runs after the default mappings, so a later
+`require("telescope.actions").select_default:replace(...)` takes precedence
+over `on_select`. Example: >lua
+
+    maccy = {
+      attach_mappings = function(_, map)
+        map({ "i", "n" }, "<C-y>", function(prompt_bufnr)
+          local entry = require("telescope.actions.state").get_selected_entry()
+          require("telescope.actions").close(prompt_bufnr)
+          if entry and entry.value then
+            vim.fn.setreg("+", entry.value)
+          end
+        end)
+        return true
+      end,
+    }
+<
+
 ==============================================================================
 7. HEALTH                                          *telescope-maccy-health*
 
